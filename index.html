@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Simulator Kesetimbangan Mobil</title>
+<title>Simulator Kesetimbangan Bus di Tanjakan</title>
 <style>
   body {
     margin: 0;
@@ -32,8 +32,8 @@
 <div class="panel">
   <b>Kontrol Simulator</b><br><br>
 
-  Massa Mobil: <span id="massaVal">1000</span> kg<br>
-  <input type="range" id="massa" min="500" max="2000" value="1000"><br><br>
+  Massa Bus: <span id="massaVal">1000</span> kg<br>
+  <input type="range" id="massa" min="500" max="3000" value="1000"><br><br>
 
   <button onclick="play()">▶ Play</button>
   <button onclick="stop()">⏸ Stop</button>
@@ -45,11 +45,11 @@ const canvas = document.getElementById("sim");
 const ctx = canvas.getContext("2d");
 
 const g = 9.8;
-const theta = 10 * Math.PI / 180;
+const theta = 15 * Math.PI / 180; // tanjakan gunung
 const mu = 0.6;
 
 let m = 1000;
-let x0 = 300, y0 = 280;
+let x0 = 200, y0 = 300;
 let x = x0, y = y0;
 let v = 0;
 let running = false;
@@ -64,12 +64,8 @@ massaSlider.oninput = function () {
 };
 
 // Tombol
-function play() {
-  running = true;
-}
-function stop() {
-  running = false;
-}
+function play() { running = true; }
+function stop() { running = false; }
 function reset() {
   running = false;
   x = x0;
@@ -77,20 +73,40 @@ function reset() {
   v = 0;
 }
 
-// Background
+// ===== BACKGROUND =====
 function drawBackground() {
-  ctx.fillStyle = "#3CB371";
-  ctx.fillRect(0, 350, 900, 150);
 
-  ctx.save();
-  ctx.translate(0, 350);
-  ctx.rotate(-theta);
+  // Rumput
+  ctx.fillStyle = "#3CB371";
+  ctx.fillRect(0, 330, 900, 170);
+
+  // Jalan datar
   ctx.fillStyle = "#555";
-  ctx.fillRect(0, -40, 900, 80);
+  ctx.fillRect(0, 300, 350, 60);
+
+  // Jalan tanjakan gunung
+  ctx.save();
+  ctx.translate(350, 330);
+  ctx.rotate(-theta);
+  ctx.fillRect(0, -30, 600, 60);
   ctx.restore();
 
-  drawTree(120, 320);
-  drawTree(200, 330);
+  // Gunung
+  drawMountain(650, 330);
+  drawMountain(750, 340);
+
+  // Pohon
+  drawTree(100, 290);
+  drawTree(180, 295);
+}
+
+function drawMountain(x, y) {
+  ctx.beginPath();
+  ctx.moveTo(x - 80, y);
+  ctx.lineTo(x, y - 120);
+  ctx.lineTo(x + 80, y);
+  ctx.fillStyle = "#556B2F";
+  ctx.fill();
 }
 
 function drawTree(x, y) {
@@ -102,18 +118,29 @@ function drawTree(x, y) {
   ctx.fill();
 }
 
-// Mobil
-function drawCar() {
-  ctx.fillStyle = "red";
-  ctx.fillRect(x, y - 20, 80, 20);
+// ===== BUS =====
+function drawBus() {
+  ctx.fillStyle = "#FF4500";
+  ctx.fillRect(x, y - 40, 140, 40);
+
+  // Kaca
+  ctx.fillStyle = "#ADD8E6";
+  ctx.fillRect(x + 10, y - 35, 40, 25);
+  ctx.fillRect(x + 60, y - 35, 60, 25);
+
+  // Pintu
+  ctx.fillStyle = "#333";
+  ctx.fillRect(x + 120, y - 35, 15, 35);
+
+  // Roda
   ctx.beginPath();
-  ctx.arc(x + 15, y, 10, 0, Math.PI * 2);
-  ctx.arc(x + 65, y, 10, 0, Math.PI * 2);
+  ctx.arc(x + 30, y, 12, 0, Math.PI * 2);
+  ctx.arc(x + 110, y, 12, 0, Math.PI * 2);
   ctx.fillStyle = "black";
   ctx.fill();
 }
 
-// Info fisika
+// ===== INFO =====
 function drawText() {
   const Wp = m * g * Math.sin(theta);
   const N = m * g * Math.cos(theta);
@@ -121,19 +148,19 @@ function drawText() {
 
   ctx.fillStyle = "black";
   ctx.font = "16px Arial";
-  ctx.fillText("SIMULATOR KESETIMBANGAN MOBIL", 20, 30);
-  ctx.fillText("Massa: " + m + " kg", 20, 55);
+  ctx.fillText("SIMULATOR KESETIMBANGAN BUS DI TANJAKAN GUNUNG", 20, 30);
+  ctx.fillText("Massa Bus: " + m + " kg", 20, 55);
   ctx.fillText("Gaya Turun (mg sinθ): " + Wp.toFixed(1) + " N", 20, 80);
   ctx.fillText("Gaya Gesek (μN): " + Fg.toFixed(1) + " N", 20, 105);
 
   if (Wp <= Fg) {
-    ctx.fillText("STATUS: SETIMBANG (Mobil Diam)", 20, 135);
+    ctx.fillText("STATUS: SETIMBANG (Bus Diam)", 20, 135);
   } else {
-    ctx.fillText("STATUS: TIDAK SETIMBANG (Mobil Bergerak)", 20, 135);
+    ctx.fillText("STATUS: TIDAK SETIMBANG (Bus Meluncur)", 20, 135);
   }
 }
 
-// Update fisika
+// ===== FISIKA =====
 function update() {
   if (!running) return;
 
@@ -142,7 +169,7 @@ function update() {
   const Fg = mu * N;
 
   if (Wp > Fg) {
-    v += 0.05;
+    v += 0.04;
     x += v;
     y += v * Math.tan(theta);
   }
@@ -151,7 +178,7 @@ function update() {
 function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
-  drawCar();
+  drawBus();
   drawText();
   update();
   requestAnimationFrame(animate);
