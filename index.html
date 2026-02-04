@@ -1,170 +1,165 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Visualisasi Kesetimbangan Fisika</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #eef2ff;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      max-width: 1000px;
-      margin: auto;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    canvas {
-      background: #f9fafb;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-    }
-    label {
-      font-weight: bold;
-    }
-    input[type=range] {
-      width: 100%;
-    }
-    .rumus {
-      background: #f1f5f9;
-      padding: 12px;
-      border-radius: 8px;
-      font-family: 'Courier New', monospace;
-      margin-top: 10px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Simulator Kesetimbangan Mobil</title>
+<style>
+  body {
+    margin: 0;
+    background: skyblue;
+    font-family: Arial;
+  }
+  canvas {
+    display: block;
+  }
+  .panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255,255,255,0.9);
+    padding: 10px;
+    border-radius: 8px;
+  }
+  button {
+    margin: 3px;
+  }
+</style>
 </head>
 <body>
 
-<h1>Visualisasi Kesetimbangan Fisika (Fisika Terapan)</h1>
+<canvas id="sim" width="900" height="500"></canvas>
 
-<div class="container">
-  <!-- KONTROL -->
-  <div class="card">
-    <h2>Pengaturan Beban</h2>
+<div class="panel">
+  <b>Kontrol Simulator</b><br><br>
 
-    <label>Berat Beban Kiri (W₁) = <span id="w1Val">10</span> N</label>
-    <input type="range" min="1" max="50" value="10" id="w1" />
+  Massa Mobil: <span id="massaVal">1000</span> kg<br>
+  <input type="range" id="massa" min="500" max="2000" value="1000"><br><br>
 
-    <br><br>
-
-    <label>Jarak Kiri (d₁) = <span id="d1Val">2</span> m</label>
-    <input type="range" min="1" max="5" value="2" id="d1" />
-
-    <br><br>
-
-    <label>Berat Beban Kanan (W₂) = <span id="w2Val">10</span> N</label>
-    <input type="range" min="1" max="50" value="10" id="w2" />
-
-    <br><br>
-
-    <label>Jarak Kanan (d₂) = <span id="d2Val">2</span> m</label>
-    <input type="range" min="1" max="5" value="2" id="d2" />
-
-    <h3>Rumus Kesetimbangan Momen</h3>
-    <div class="rumus">
-      Στ = 0<br>
-      W₁ × d₁ = W₂ × d₂
-    </div>
-
-    <p id="hasil"></p>
-  </div>
-
-  <!-- VISUALISASI -->
-  <div class="card">
-    <h2>Visualisasi Tuas</h2>
-    <canvas id="kanvas" width="450" height="250"></canvas>
-  </div>
+  <button onclick="play()">▶ Play</button>
+  <button onclick="stop()">⏸ Stop</button>
+  <button onclick="reset()">🔄 Reset</button>
 </div>
 
 <script>
-  const canvas = document.getElementById('kanvas');
-  const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("sim");
+const ctx = canvas.getContext("2d");
 
-  const w1 = document.getElementById('w1');
-  const d1 = document.getElementById('d1');
-  const w2 = document.getElementById('w2');
-  const d2 = document.getElementById('d2');
+const g = 9.8;
+const theta = 10 * Math.PI / 180;
+const mu = 0.6;
 
-  const w1Val = document.getElementById('w1Val');
-  const d1Val = document.getElementById('d1Val');
-  const w2Val = document.getElementById('w2Val');
-  const d2Val = document.getElementById('d2Val');
-  const hasil = document.getElementById('hasil');
+let m = 1000;
+let x0 = 300, y0 = 280;
+let x = x0, y = y0;
+let v = 0;
+let running = false;
 
-  function gambar() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+// Slider massa
+const massaSlider = document.getElementById("massa");
+const massaVal = document.getElementById("massaVal");
 
-    const pusatX = canvas.width / 2;
-    const pusatY = 130;
+massaSlider.oninput = function () {
+  m = Number(this.value);
+  massaVal.innerText = m;
+};
 
-    // Tuas
-    ctx.beginPath();
-    ctx.moveTo(50, pusatY);
-    ctx.lineTo(canvas.width - 50, pusatY);
-    ctx.lineWidth = 4;
-    ctx.stroke();
+// Tombol
+function play() {
+  running = true;
+}
+function stop() {
+  running = false;
+}
+function reset() {
+  running = false;
+  x = x0;
+  y = y0;
+  v = 0;
+}
 
-    // Titik tumpu
-    ctx.beginPath();
-    ctx.moveTo(pusatX - 10, pusatY);
-    ctx.lineTo(pusatX + 10, pusatY);
-    ctx.lineTo(pusatX, pusatY + 20);
-    ctx.closePath();
-    ctx.fillStyle = '#555';
-    ctx.fill();
+// Background
+function drawBackground() {
+  ctx.fillStyle = "#3CB371";
+  ctx.fillRect(0, 350, 900, 150);
 
-    const skala = 30;
+  ctx.save();
+  ctx.translate(0, 350);
+  ctx.rotate(-theta);
+  ctx.fillStyle = "#555";
+  ctx.fillRect(0, -40, 900, 80);
+  ctx.restore();
 
-    // Beban kiri
-    ctx.fillStyle = 'red';
-    ctx.beginPath();
-    ctx.arc(pusatX - d1.value * skala, pusatY + 30, w1.value / 2, 0, Math.PI * 2);
-    ctx.fill();
+  drawTree(120, 320);
+  drawTree(200, 330);
+}
 
-    // Beban kanan
-    ctx.fillStyle = 'blue';
-    ctx.beginPath();
-    ctx.arc(pusatX + d2.value * skala, pusatY + 30, w2.value / 2, 0, Math.PI * 2);
-    ctx.fill();
+function drawTree(x, y) {
+  ctx.fillStyle = "#8B4513";
+  ctx.fillRect(x, y, 15, 40);
+  ctx.beginPath();
+  ctx.arc(x + 8, y - 10, 25, 0, Math.PI * 2);
+  ctx.fillStyle = "green";
+  ctx.fill();
+}
 
-    const momenKiri = w1.value * d1.value;
-    const momenKanan = w2.value * d2.value;
+// Mobil
+function drawCar() {
+  ctx.fillStyle = "red";
+  ctx.fillRect(x, y - 20, 80, 20);
+  ctx.beginPath();
+  ctx.arc(x + 15, y, 10, 0, Math.PI * 2);
+  ctx.arc(x + 65, y, 10, 0, Math.PI * 2);
+  ctx.fillStyle = "black";
+  ctx.fill();
+}
 
-    if (momenKiri === momenKanan) {
-      hasil.innerHTML = '<b>Status:</b> SETIMBANG ✅<br>' +
-        `W₁×d₁ = ${momenKiri} Nm | W₂×d₂ = ${momenKanan} Nm`;
-    } else {
-      hasil.innerHTML = '<b>Status:</b> TIDAK SETIMBANG ❌<br>' +
-        `W₁×d₁ = ${momenKiri} Nm | W₂×d₂ = ${momenKanan} Nm`;
-    }
+// Info fisika
+function drawText() {
+  const Wp = m * g * Math.sin(theta);
+  const N = m * g * Math.cos(theta);
+  const Fg = mu * N;
+
+  ctx.fillStyle = "black";
+  ctx.font = "16px Arial";
+  ctx.fillText("SIMULATOR KESETIMBANGAN MOBIL", 20, 30);
+  ctx.fillText("Massa: " + m + " kg", 20, 55);
+  ctx.fillText("Gaya Turun (mg sinθ): " + Wp.toFixed(1) + " N", 20, 80);
+  ctx.fillText("Gaya Gesek (μN): " + Fg.toFixed(1) + " N", 20, 105);
+
+  if (Wp <= Fg) {
+    ctx.fillText("STATUS: SETIMBANG (Mobil Diam)", 20, 135);
+  } else {
+    ctx.fillText("STATUS: TIDAK SETIMBANG (Mobil Bergerak)", 20, 135);
   }
+}
 
-  function update() {
-    w1Val.textContent = w1.value;
-    d1Val.textContent = d1.value;
-    w2Val.textContent = w2.value;
-    d2Val.textContent = d2.value;
-    gambar();
+// Update fisika
+function update() {
+  if (!running) return;
+
+  const Wp = m * g * Math.sin(theta);
+  const N = m * g * Math.cos(theta);
+  const Fg = mu * N;
+
+  if (Wp > Fg) {
+    v += 0.05;
+    x += v;
+    y += v * Math.tan(theta);
   }
+}
 
-  [w1, d1, w2, d2].forEach(el => el.addEventListener('input', update));
-
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
+  drawCar();
+  drawText();
   update();
+  requestAnimationFrame(animate);
+}
+
+animate();
 </script>
 
 </body>
 </html>
+
